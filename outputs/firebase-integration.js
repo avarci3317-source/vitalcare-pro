@@ -5,13 +5,13 @@ import { firebaseConfig } from './firebase-config.js';
 
 const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app), provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
-let syncTimer, stateRef, loginMode = location.hash === '#portal' ? 'client' : 'admin';
+let syncTimer, stateRef, loginMode = sessionStorage.getItem('vitalcare-login-mode') || (location.hash === '#portal' ? 'client' : 'admin'), demoMode = sessionStorage.getItem('vitalcare-demo-mode') === 'true';
 const emailKey = email => (email || '').trim().toLowerCase();
 const clientId = client => emailKey(client.email) || client.initials || client.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
 
 const overlay = document.createElement('div');
 overlay.id = 'authOverlay';
-overlay.innerHTML = `<section class="auth-card"><div class="auth-symbol">✦</div><p>VITALCARE PRO</p><h1>Tu centro, conectado.</h1><span>Ingresa como administrador o consulta tu perfil de cliente de forma segura.</span><button id="googleLogin">Continuar como administrador</button><button id="clientLogin" class="client-login">Acceder como cliente</button><small>Los clientes deben usar el correo registrado por la clínica.</small></section>`;
+overlay.innerHTML = `<section class="auth-card"><div class="auth-symbol">✦</div><p>VITALCARE PRO</p><h1>Tu centro, conectado.</h1><span>Ingresa como administrador o consulta tu perfil de cliente de forma segura.</span><button id="googleLogin">Continuar como administrador</button><button id="clientLogin" class="client-login">Acceder como cliente</button><button id="demoLogin" class="demo-login">Ver demostración</button><small>La demostración no guarda datos en la nube. Los clientes deben usar el correo registrado por la clínica.</small></section>`;
 document.body.append(overlay);
 const userMenu = document.createElement('div');
 userMenu.className = 'user-menu'; userMenu.innerHTML = `<span class="user-avatar"></span><div><b></b><small>Administrador</small></div><button title="Cerrar sesión">↪</button>`;
@@ -64,10 +64,11 @@ async function loadClientPortal(user) {
   clientView.innerHTML = `<main class="secure-portal"><header><div class="secure-brand">✦ <b>VitalCare Pro</b></div><button id="clientSignOut">Cerrar sesión</button></header><section class="secure-hero"><p>MI PERFIL</p><h1>Hola, ${client.data().name}</h1><span>Consulta tus citas y explora los tratamientos disponibles.</span></section><section><h2>Mis próximas citas</h2><div class="secure-list">${appointments.empty ? '<p>No tienes citas activas.</p>' : appointments.docs.map(x => `<article><b>${x.data().service}</b><span>Hoy · ${x.data().time} · ${x.data().provider}</span><i>${x.data().status}</i></article>`).join('')}</div></section><section><h2>Tratamientos y precios</h2><div class="secure-services">${services.docs.map(x => `<article><b>${x.data().name}</b><span>◷ ${x.data().duration}</span><strong>${x.data().price}</strong></article>`).join('')}</div></section></main>`;
   clientView.classList.add('visible'); document.querySelector('#clientSignOut').onclick = () => signOut(auth);
 }
-async function googleLogin(mode) { loginMode = mode; try { if (window.matchMedia('(max-width: 700px)').matches) await signInWithRedirect(auth, provider); else await signInWithPopup(auth, provider); } catch (error) { console.error(error); alert('No fue posible iniciar sesión. Verifica el dominio autorizado y vuelve a intentar.'); } }
-document.querySelector('#googleLogin').onclick = () => googleLogin('admin'); document.querySelector('#clientLogin').onclick = () => googleLogin('client'); userMenu.querySelector('button').onclick = () => signOut(auth);
+async function googleLogin(mode) { loginMode = mode; demoMode = false; sessionStorage.setItem('vitalcare-login-mode', mode); sessionStorage.removeItem('vitalcare-demo-mode'); try { if (window.matchMedia('(max-width: 700px)').matches) await signInWithRedirect(auth, provider); else await signInWithPopup(auth, provider); } catch (error) { console.error(error); alert('No fue posible iniciar sesión. Verifica el dominio autorizado y vuelve a intentar.'); } }
+function openDemo() { demoMode = true; sessionStorage.setItem('vitalcare-demo-mode', 'true'); overlay.classList.add('hidden'); }
+document.querySelector('#googleLogin').onclick = () => googleLogin('admin'); document.querySelector('#clientLogin').onclick = () => googleLogin('client'); document.querySelector('#demoLogin').onclick = openDemo; userMenu.querySelector('button').onclick = () => signOut(auth);
 onAuthStateChanged(auth, async user => {
-  if (!user) { window.vitalCareSync = null; overlay.classList.remove('hidden'); userMenu.remove(); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; return; }
+  if (!user) { window.vitalCareSync = null; if (demoMode) overlay.classList.add('hidden'); else overlay.classList.remove('hidden'); userMenu.remove(); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; return; }
   try {
     const profile = await getDoc(doc(db, 'users', user.uid));
     if (loginMode === 'client') { await loadClientPortal(user); overlay.classList.add('hidden'); return; }
