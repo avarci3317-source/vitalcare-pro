@@ -1,82 +1,76 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
+const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app), provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
-let syncTimer;
-let stateRef;
+let syncTimer, stateRef, loginMode = location.hash === '#portal' ? 'client' : 'admin';
+const emailKey = email => (email || '').trim().toLowerCase();
+const clientId = client => emailKey(client.email) || client.initials || client.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
 
 const overlay = document.createElement('div');
 overlay.id = 'authOverlay';
-overlay.innerHTML = `<section class="auth-card"><div class="auth-symbol">✦</div><p>VITALCARE PRO</p><h1>Tu centro, conectado.</h1><span>Ingresa para administrar citas, clientes y tratamientos de forma segura.</span><button id="googleLogin">Continuar con Google</button><small>Acceso seguro para administración y clientes.</small></section>`;
+overlay.innerHTML = `<section class="auth-card"><div class="auth-symbol">✦</div><p>VITALCARE PRO</p><h1>Tu centro, conectado.</h1><span>Ingresa como administrador o consulta tu perfil de cliente de forma segura.</span><button id="googleLogin">Continuar como administrador</button><button id="clientLogin" class="client-login">Acceder como cliente</button><small>Los clientes deben usar el correo registrado por la clínica.</small></section>`;
 document.body.append(overlay);
-
 const userMenu = document.createElement('div');
-userMenu.className = 'user-menu';
-userMenu.innerHTML = `<span class="user-avatar"></span><div><b></b><small>Administrador</small></div><button title="Cerrar sesión">↪</button>`;
+userMenu.className = 'user-menu'; userMenu.innerHTML = `<span class="user-avatar"></span><div><b></b><small>Administrador</small></div><button title="Cerrar sesión">↪</button>`;
+const clientView = document.createElement('div'); clientView.id = 'secureClientView'; document.body.append(clientView);
 
-async function ensureProfile(user) {
-  const userRef = doc(db, 'users', user.uid);
-  const snapshot = await getDoc(userRef);
-  if (!snapshot.exists()) {
-    const organizationId = user.uid;
-    await setDoc(doc(db, 'organizations', organizationId), {
-      name: 'VitalCare Pro', ownerId: user.uid, createdAt: serverTimestamp()
-    });
-    await setDoc(userRef, {
-      displayName: user.displayName || 'Administrador', email: user.email || '', role: 'admin',
-      organizationId, createdAt: serverTimestamp()
-    });
-    return { organizationId, role: 'admin' };
-  }
-  return snapshot.data();
+async function ensureAdminProfile(user) {
+  const userRef = doc(db, 'users', user.uid), snapshot = await getDoc(userRef);
+  if (snapshot.exists()) return snapshot.data();
+  const organizationId = user.uid;
+  await setDoc(doc(db, 'organizations', organizationId), { name: 'VitalCare Pro', ownerId: user.uid, createdAt: serverTimestamp() });
+  await setDoc(userRef, { displayName: user.displayName || 'Administrador', email: user.email || '', role: 'admin', organizationId, createdAt: serverTimestamp() });
+  return { organizationId, role: 'admin' };
 }
-
-async function hydrateApp(profile) {
+async function syncClientRecords(organizationId, data) {
+  const byName = new Map(data.clients.map(c => [c.name, c]));
+  await Promise.all(data.clients.filter(c => c.email).map(async client => {
+    const id = clientId(client), email = emailKey(client.email);
+    await setDoc(doc(db, 'clientDirectory', email), { organizationId, clientId: id, updatedAt: serverTimestamp() });
+    await setDoc(doc(db, 'organizations', organizationId, 'clients', id), { ...client, id, email, updatedAt: serverTimestamp() }, { merge: true });
+  }));
+  await Promise.all(data.appointments.map(async (appointment, index) => {
+    const client = byName.get(appointment.name); if (!client?.email) return;
+    await setDoc(doc(db, 'organizations', organizationId, 'clientAppointments', `${clientId(client)}-${index}`), { ...appointment, email: emailKey(client.email), updatedAt: serverTimestamp() });
+  }));
+  await Promise.all(data.services.map((s, i) => setDoc(doc(db, 'organizations', organizationId, 'services', `service-${i}`), { name: s[0], duration: s[1], price: s[2], icon: s[3] }, { merge: true })));
+}
+async function hydrateAdmin(profile) {
   stateRef = doc(db, 'organizations', profile.organizationId, 'settings', 'appState');
   const saved = await getDoc(stateRef);
   if (saved.exists() && saved.data().data) window.vitalCareSetState(saved.data().data);
   else await setDoc(stateRef, { data: window.vitalCareGetState(), updatedAt: serverTimestamp() });
-  window.vitalCareSync = (data) => {
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => setDoc(stateRef, { data, updatedAt: serverTimestamp() }, { merge: true }), 450);
-  };
+  await syncClientRecords(profile.organizationId, window.vitalCareGetState());
+  window.vitalCareSync = data => { clearTimeout(syncTimer); syncTimer = setTimeout(async () => { await setDoc(stateRef, { data, updatedAt: serverTimestamp() }, { merge: true }); await syncClientRecords(profile.organizationId, data); }, 550); };
+  installClientAccessButtons();
 }
-
-async function googleLogin() {
-  try {
-    if (window.matchMedia('(max-width: 700px)').matches) await signInWithRedirect(auth, provider);
-    else await signInWithPopup(auth, provider);
-  } catch (error) {
-    alert('No fue posible iniciar sesión. Verifica que estés usando un dominio autorizado y vuelve a intentarlo.');
-    console.error(error);
-  }
+function installClientAccessButtons() {
+  const table = document.querySelector('#clientTable'); if (!table || table.dataset.accessReady) return;
+  table.dataset.accessReady = 'true'; new MutationObserver(() => table.querySelectorAll('tr').forEach(row => {
+    const cell = row.lastElementChild; if (!cell || cell.querySelector('button')) return;
+    const name = row.querySelector('td')?.innerText.trim(); cell.innerHTML = `<button class="grant-client-access">Acceso</button>`;
+    cell.querySelector('button').onclick = () => { const client = window.vitalCareGetState().clients.find(c => c.name === name); const email = prompt(`Correo de Google para ${name}:`, client?.email || ''); if (!email || !client) return; client.email = emailKey(email); window.vitalCareSync?.(window.vitalCareGetState()); window.vitalCareSetState(window.vitalCareGetState()); alert('Acceso asignado. El cliente debe entrar con este mismo correo.'); };
+  })).observe(table, { childList: true, subtree: true }); window.vitalCareSetState(window.vitalCareGetState());
 }
-
-document.querySelector('#googleLogin').addEventListener('click', googleLogin);
-userMenu.querySelector('button').addEventListener('click', () => signOut(auth));
-
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.vitalCareSync = null;
-    overlay.classList.remove('hidden');
-    userMenu.remove();
-    return;
-  }
+async function loadClientPortal(user) {
+  const directory = await getDoc(doc(db, 'clientDirectory', emailKey(user.email))); if (!directory.exists()) throw new Error('CLIENT_NOT_REGISTERED');
+  const access = directory.data(), client = await getDoc(doc(db, 'organizations', access.organizationId, 'clients', access.clientId));
+  const appointments = await getDocs(query(collection(db, 'organizations', access.organizationId, 'clientAppointments'), where('email', '==', emailKey(user.email))));
+  const services = await getDocs(collection(db, 'organizations', access.organizationId, 'services'));
+  document.querySelector('main').style.display = 'none'; document.querySelector('.sidebar').style.display = 'none';
+  clientView.innerHTML = `<main class="secure-portal"><header><div class="secure-brand">✦ <b>VitalCare Pro</b></div><button id="clientSignOut">Cerrar sesión</button></header><section class="secure-hero"><p>MI PERFIL</p><h1>Hola, ${client.data().name}</h1><span>Consulta tus citas y explora los tratamientos disponibles.</span></section><section><h2>Mis próximas citas</h2><div class="secure-list">${appointments.empty ? '<p>No tienes citas activas.</p>' : appointments.docs.map(x => `<article><b>${x.data().service}</b><span>Hoy · ${x.data().time} · ${x.data().provider}</span><i>${x.data().status}</i></article>`).join('')}</div></section><section><h2>Tratamientos y precios</h2><div class="secure-services">${services.docs.map(x => `<article><b>${x.data().name}</b><span>◷ ${x.data().duration}</span><strong>${x.data().price}</strong></article>`).join('')}</div></section></main>`;
+  clientView.classList.add('visible'); document.querySelector('#clientSignOut').onclick = () => signOut(auth);
+}
+async function googleLogin(mode) { loginMode = mode; try { if (window.matchMedia('(max-width: 700px)').matches) await signInWithRedirect(auth, provider); else await signInWithPopup(auth, provider); } catch (error) { console.error(error); alert('No fue posible iniciar sesión. Verifica el dominio autorizado y vuelve a intentar.'); } }
+document.querySelector('#googleLogin').onclick = () => googleLogin('admin'); document.querySelector('#clientLogin').onclick = () => googleLogin('client'); userMenu.querySelector('button').onclick = () => signOut(auth);
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.vitalCareSync = null; overlay.classList.remove('hidden'); userMenu.remove(); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; return; }
   try {
-    const profile = await ensureProfile(user);
-    await hydrateApp(profile);
-    overlay.classList.add('hidden');
-    userMenu.querySelector('.user-avatar').textContent = (user.displayName || 'U').split(' ').slice(0, 2).map(x => x[0]).join('');
-    userMenu.querySelector('b').textContent = user.displayName || user.email;
-    document.querySelector('.header-actions')?.prepend(userMenu);
-  } catch (error) {
-    console.error(error);
-    alert('Tu acceso fue reconocido, pero faltan las reglas de seguridad de Firestore. Finaliza la configuración y vuelve a intentar.');
-  }
+    const profile = await getDoc(doc(db, 'users', user.uid));
+    if (loginMode === 'client') { await loadClientPortal(user); overlay.classList.add('hidden'); return; }
+    await hydrateAdmin(profile.exists() ? profile.data() : await ensureAdminProfile(user)); overlay.classList.add('hidden'); userMenu.querySelector('.user-avatar').textContent = (user.displayName || 'U').split(' ').slice(0, 2).map(x => x[0]).join(''); userMenu.querySelector('b').textContent = user.displayName || user.email; document.querySelector('.header-actions')?.prepend(userMenu);
+  } catch (error) { console.error(error); overlay.classList.remove('hidden'); alert(error.message === 'CLIENT_NOT_REGISTERED' ? 'Este correo no tiene un perfil asignado. Solicita a la clínica que registre tu correo.' : 'No fue posible cargar tu acceso. Vuelve a intentarlo en un minuto.'); }
 });

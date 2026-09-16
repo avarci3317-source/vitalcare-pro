@@ -8,6 +8,12 @@ service cloud.firestore {
         && currentUser().data.organizationId == orgId;
     }
     function isAdmin(orgId) { return isMember(orgId) && currentUser().data.role == 'admin'; }
+    function ownsEmail(email) { return signedIn() && request.auth.token.email == email; }
+
+    match /clientDirectory/{email} {
+      allow get: if ownsEmail(email);
+      allow create, update, delete: if signedIn() && isAdmin(request.resource.data.organizationId);
+    }
 
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin(resource.data.organizationId));
@@ -29,6 +35,18 @@ service cloud.firestore {
       allow delete: if false;
       match /{document=**} {
         allow read: if isMember(orgId);
+        allow create, update, delete: if isAdmin(orgId);
+      }
+      match /clients/{clientId} {
+        allow read: if isAdmin(orgId) || ownsEmail(resource.data.email);
+        allow create, update, delete: if isAdmin(orgId);
+      }
+      match /clientAppointments/{appointmentId} {
+        allow read: if isAdmin(orgId) || ownsEmail(resource.data.email);
+        allow create, update, delete: if isAdmin(orgId);
+      }
+      match /services/{serviceId} {
+        allow read: if signedIn();
         allow create, update, delete: if isAdmin(orgId);
       }
     }
