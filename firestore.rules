@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function currentUser() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function isMember(orgId) {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && currentUser().data.organizationId == orgId;
+    }
+    function isAdmin(orgId) { return isMember(orgId) && currentUser().data.role == 'admin'; }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin(resource.data.organizationId));
+      allow create: if signedIn() && request.auth.uid == userId
+        && request.resource.data.role == 'admin' && request.resource.data.organizationId == userId;
+      allow update: if signedIn() && (
+        (request.auth.uid == userId
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.organizationId == resource.data.organizationId)
+        || isAdmin(resource.data.organizationId)
+      );
+      allow delete: if false;
+    }
+
+    match /organizations/{orgId} {
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow read: if isMember(orgId);
+      allow update: if isAdmin(orgId);
+      allow delete: if false;
+      match /{document=**} {
+        allow read: if isMember(orgId);
+        allow create, update, delete: if isAdmin(orgId);
+      }
+    }
+  }
+}
