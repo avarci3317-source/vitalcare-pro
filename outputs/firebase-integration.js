@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, signInWithRedirect, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 
@@ -77,7 +77,7 @@ async function loadClientPortal(user) {
   clientView.innerHTML = `<main class="secure-portal"><header><div class="secure-brand">✦ <b>VitalCare Pro</b></div><button id="clientSignOut">Cerrar sesión</button></header><section class="secure-hero"><p>MI PERFIL</p><h1>Hola, ${client.data().name}</h1><span>Consulta tus citas y explora los tratamientos disponibles.</span></section><section><h2>Mis próximas citas</h2><div class="secure-list">${appointments.empty ? '<p>No tienes citas activas.</p>' : appointments.docs.map(x => `<article><b>${x.data().service}</b><span>Hoy · ${x.data().time} · ${x.data().provider}</span><i>${x.data().status}</i></article>`).join('')}</div></section><section><h2>Tratamientos y precios</h2><div class="secure-services">${services.docs.map(x => `<article><b>${x.data().name}</b><span>◷ ${x.data().duration}</span><strong>${x.data().price}</strong></article>`).join('')}</div></section></main>`;
   clientView.classList.add('visible'); document.querySelector('#clientSignOut').onclick = () => closeSession();
 }
-async function googleLogin(mode) { loginMode = mode; sessionStorage.setItem('vitalcare-login-mode', mode); try { if (window.matchMedia('(max-width: 700px)').matches) await signInWithRedirect(auth, provider); else await signInWithPopup(auth, provider); } catch (error) { console.error(error); alert('No fue posible iniciar sesión. Verifica el dominio autorizado y vuelve a intentar.'); } }
+async function googleLogin(mode) { loginMode = mode; sessionStorage.setItem('vitalcare-login-mode', mode); try { await signInWithRedirect(auth, provider); } catch (error) { console.error(error); alert('No fue posible iniciar sesión. Verifica el dominio autorizado y vuelve a intentar.'); } }
 async function closeSession() { sessionStorage.removeItem('vitalcare-login-mode'); document.body.classList.remove('client-mode'); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; overlay.classList.remove('hidden'); await signOut(auth); }
 window.vitalCareSignOut = closeSession;
 document.querySelector('#googleLogin').onclick = () => googleLogin('admin'); document.querySelector('#registerLogin').onclick = () => googleLogin('register'); document.querySelector('#clientLogin').onclick = () => googleLogin('client'); userMenu.querySelector('button').onclick = closeSession;
