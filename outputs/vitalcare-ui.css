@@ -6,6 +6,7 @@
 .auth-dismiss:before{display:none!important}
 #secureClientView.visible{display:block;position:relative;z-index:101}
 body.client-mode>#secureClientView{display:block;position:relative;z-index:101}
+body:not(.admin-mode):not(.client-mode)>main,body:not(.admin-mode):not(.client-mode)>.sidebar,body:not(.admin-mode):not(.client-mode)>.mobile-nav,body:not(.admin-mode):not(.client-mode)>.mobile-drawer{display:none!important}
 body.client-mode>main,body.client-mode>.sidebar,body.client-mode>.mobile-nav,body.client-mode>.mobile-drawer{display:none!important}
 @media(max-width:650px){
   body{background:#f4f8f6;padding-bottom:82px}

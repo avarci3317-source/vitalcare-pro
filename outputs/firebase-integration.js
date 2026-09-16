@@ -78,16 +78,16 @@ async function loadClientPortal(user) {
   clientView.classList.add('visible'); document.querySelector('#clientSignOut').onclick = () => closeSession();
 }
 async function googleLogin(mode) { loginMode = mode; sessionStorage.setItem('vitalcare-login-mode', mode); try { await signInWithRedirect(auth, provider); } catch (error) { console.error(error); alert('No fue posible iniciar sesión. Verifica el dominio autorizado y vuelve a intentar.'); } }
-async function closeSession() { sessionStorage.removeItem('vitalcare-login-mode'); document.body.classList.remove('client-mode'); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; overlay.classList.remove('hidden'); await signOut(auth); }
+async function closeSession() { sessionStorage.removeItem('vitalcare-login-mode'); document.body.classList.remove('client-mode', 'admin-mode'); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; overlay.classList.remove('hidden'); await signOut(auth); }
 window.vitalCareSignOut = closeSession;
 document.querySelector('#googleLogin').onclick = () => googleLogin('admin'); document.querySelector('#registerLogin').onclick = () => googleLogin('register'); document.querySelector('#clientLogin').onclick = () => googleLogin('client'); userMenu.querySelector('button').onclick = closeSession;
 onAuthStateChanged(auth, async user => {
-  if (!user) { window.vitalCareSync = null; document.body.classList.remove('client-mode'); overlay.classList.remove('hidden'); userMenu.remove(); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; return; }
+  if (!user) { window.vitalCareSync = null; document.body.classList.remove('client-mode', 'admin-mode'); overlay.classList.remove('hidden'); userMenu.remove(); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; return; }
   try {
     const profile = await getDoc(doc(db, 'users', user.uid));
     const isNewAccount = !profile.exists();
     if (loginMode === 'client') { await loadClientPortal(user); overlay.classList.add('hidden'); return; }
-    document.body.classList.remove('client-mode'); await hydrateAdmin(profile.exists() ? profile.data() : await ensureAdminProfile(user)); overlay.classList.add('hidden'); userMenu.querySelector('.user-avatar').textContent = (user.displayName || 'U').split(' ').slice(0, 2).map(x => x[0]).join(''); userMenu.querySelector('b').textContent = user.displayName || user.email; document.querySelector('.header-actions')?.prepend(userMenu);
+    document.body.classList.remove('client-mode'); await hydrateAdmin(profile.exists() ? profile.data() : await ensureAdminProfile(user)); document.body.classList.add('admin-mode'); overlay.classList.add('hidden'); userMenu.querySelector('.user-avatar').textContent = (user.displayName || 'U').split(' ').slice(0, 2).map(x => x[0]).join(''); userMenu.querySelector('b').textContent = user.displayName || user.email; document.querySelector('.header-actions')?.prepend(userMenu);
     if (loginMode === 'register' && isNewAccount) alert('¡Cuenta creada! Ya puedes configurar tu clínica, servicios y clientes.');
     loginMode = 'admin'; sessionStorage.setItem('vitalcare-login-mode', 'admin');
   } catch (error) { console.error(error); overlay.classList.remove('hidden'); alert(error.message === 'CLIENT_NOT_REGISTERED' ? 'Este correo no tiene un perfil asignado. Solicita a la clínica que registre tu correo.' : 'No fue posible cargar tu acceso. Vuelve a intentarlo en un minuto.'); }
