@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 
@@ -79,7 +79,7 @@ async function loadClientPortal(user) {
 }
 const authFeedback = document.querySelector('#authFeedback');
 function showAuthError(error) { console.error(error); const code = error?.code || ''; const message = code === 'auth/unauthorized-domain' ? 'Firebase no reconoce este dominio. Revisa los dominios autorizados.' : code === 'permission-denied' || /permission/i.test(error?.message || '') ? 'Google inició correctamente, pero Firebase rechazó el acceso a los datos. Revisa las reglas de Firestore.' : 'No fue posible completar el acceso: ' + (code || 'intenta de nuevo.'); authFeedback.textContent = message; authFeedback.classList.add('visible'); }
-async function googleLogin(mode) { loginMode = mode; authFeedback.textContent = 'Abriendo Google…'; authFeedback.classList.add('visible'); sessionStorage.setItem('vitalcare-login-mode', mode); try { await signInWithPopup(auth, provider); } catch (error) { if (error?.code === 'auth/popup-blocked') { authFeedback.textContent = 'Tu navegador bloqueó la ventana. Abriendo Google en esta pestaña…'; await signInWithRedirect(auth, provider); return; } showAuthError(error); } }
+async function googleLogin(mode) { loginMode = mode; authFeedback.textContent = 'Abriendo Google…'; authFeedback.classList.add('visible'); sessionStorage.setItem('vitalcare-login-mode', mode); try { await signInWithRedirect(auth, provider); } catch (error) { showAuthError(error); } }
 async function closeSession() { sessionStorage.removeItem('vitalcare-login-mode'); document.body.classList.remove('client-mode', 'admin-mode'); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; overlay.classList.remove('hidden'); await signOut(auth); }
 window.vitalCareSignOut = closeSession;
 document.querySelector('#googleLogin').onclick = () => googleLogin('admin'); document.querySelector('#registerLogin').onclick = () => googleLogin('register'); document.querySelector('#clientLogin').onclick = () => googleLogin('client'); userMenu.querySelector('button').onclick = closeSession;

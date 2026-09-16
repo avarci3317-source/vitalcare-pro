@@ -6,6 +6,18 @@
 [build.processing]
   skip_processing = false
 
+[[redirects]]
+  from = "/__/auth/*"
+  to = "https://vitalcare-pro.firebaseapp.com/__/auth/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/__/firebase/*"
+  to = "https://vitalcare-pro.firebaseapp.com/__/firebase/:splat"
+  status = 200
+  force = true
+
 [[headers]]
   for = "/*"
   [headers.values]
