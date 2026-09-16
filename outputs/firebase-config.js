@@ -2,7 +2,7 @@
 // La seguridad de los datos depende de Firebase Authentication y Firestore Rules.
 export const firebaseConfig = {
   apiKey: "AIzaSyBctwsECYM-NSpXykeqz5gWwRqVq4ozG3A",
-  authDomain: "vitalcare-pro.netlify.app",
+  authDomain: "vitalcare-pro.web.app",
   projectId: "vitalcare-pro",
   storageBucket: "vitalcare-pro.firebasestorage.app",
   messagingSenderId: "896983980649",

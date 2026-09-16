@@ -7,15 +7,9 @@
   skip_processing = false
 
 [[redirects]]
-  from = "/__/auth/*"
-  to = "https://vitalcare-pro.firebaseapp.com/__/auth/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/__/firebase/*"
-  to = "https://vitalcare-pro.firebaseapp.com/__/firebase/:splat"
-  status = 200
+  from = "/*"
+  to = "https://vitalcare-pro.web.app/:splat"
+  status = 302
   force = true
 
 [[headers]]
