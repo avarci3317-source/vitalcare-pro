@@ -1,0 +1,9 @@
+# Archivos de trabajo y configuración local
+work/
+.DS_Store
+Thumbs.db
+
+# Dependencias y archivos temporales
+node_modules/
+*.log
+.netlify/

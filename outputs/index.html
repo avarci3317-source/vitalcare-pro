@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cliniq — Gestión de citas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">✦</span><span>cliniq</span></div>
+    <div class="workspace"><span class="avatar">CL</span><div><b>Centro Lumina</b><small>Administración</small></div><span class="chev">⌄</span></div>
+    <nav>
+      <button class="nav active" data-view="dashboard"><span>▦</span>Resumen</button>
+      <button class="nav" data-view="calendar"><span>□</span>Agenda <i id="todayCount">3</i></button>
+      <button class="nav" data-view="clients"><span>♙</span>Clientes</button>
+      <button class="nav" data-view="services"><span>◇</span>Servicios</button>
+      <button class="nav" data-view="team"><span>♧</span>Equipo</button>
+      <button class="nav" data-view="reports"><span>◔</span>Reportes</button>
+    </nav>
+    <div class="side-bottom"><button class="nav" data-view="settings"><span>⚙</span>Configuración</button><button class="support">¿Necesitas ayuda? <span>→</span></button></div>
+  </aside>
+  <main>
+    <header><div><p class="eyebrow" id="headerDate"></p><h1 id="pageTitle">Buenos días, Valeria</h1></div><div class="header-actions"><button class="icon-btn">⌕</button><button class="icon-btn notification">♧</button><button class="new-btn" id="addAppointment">＋ Nueva cita</button></div></header>
+    <section id="dashboard" class="view active-view">
+      <div class="kpis">
+        <article class="kpi mint"><div><p>Citas para hoy</p><strong id="kpiAppointments">0</strong><small><span>↑ 12%</span> vs. martes anterior</small></div><b>▦</b></article>
+        <article class="kpi peach"><div><p>Clientes atendidos</p><strong>86</strong><small><span>↑ 8%</span> este mes</small></div><b>♙</b></article>
+        <article class="kpi lavender"><div><p>Ingresos del mes</p><strong>₡1.84M</strong><small><span>↑ 18%</span> vs. mes anterior</small></div><b>◔</b></article>
+      </div>
+      <div class="dashboard-grid">
+        <section class="card schedule-card"><div class="card-title"><div><h2>Agenda de hoy</h2><p id="todayLabel"></p></div><button class="text-button" data-go="calendar">Ver agenda completa →</button></div><div id="todaySchedule" class="schedule-list"></div></section>
+        <section class="card balance-card"><div class="card-title"><div><h2>Resumen de ingresos</h2><p>Últimos 6 meses</p></div><button class="dots">•••</button></div><div class="chart"><div class="chart-y"><span>₡600k</span><span>₡400k</span><span>₡200k</span><span>₡0</span></div><div class="bars"><div><i style="height:39%"></i><span>Abr</span></div><div><i style="height:55%"></i><span>May</span></div><div><i style="height:48%"></i><span>Jun</span></div><div><i style="height:70%"></i><span>Jul</span></div><div><i style="height:62%"></i><span>Ago</span></div><div class="current"><i style="height:88%"></i><span>Sep</span></div></div></div><div class="chart-total"><span>Ingresos totales</span><b>₡1,840,500</b></div></section>
+        <section class="card recent-card"><div class="card-title"><div><h2>Clientes recientes</h2><p>Últimas actualizaciones</p></div><button class="text-button" data-go="clients">Ver todos →</button></div><div id="recentClients"></div></section>
+        <section class="card status-card"><div class="card-title"><div><h2>Estado de citas</h2><p>Este mes</p></div></div><div class="donut"><div class="donut-ring"><b>124</b><span>citas</span></div><div class="legend"><p><i class="confirmed"></i>Confirmadas <b>76</b></p><p><i class="pending"></i>Pendientes <b>31</b></p><p><i class="cancelled"></i>Canceladas <b>17</b></p></div></div></section>
+      </div>
+    </section>
+    <section id="calendar" class="view"><div class="section-toolbar"><div class="date-nav"><button id="prevDay">‹</button><b id="calendarDate"></b><button id="nextDay">›</button></div><div><button class="filter-btn">☷ Filtrar</button><button class="new-btn" id="addAppointment2">＋ Nueva cita</button></div></div><div class="card calendar-wrap"><div class="providers"><span>Horario</span><div><i class="avatar small green">LM</i><b>Dra. Laura</b></div><div><i class="avatar small peach-a">DC</i><b>Daniela C.</b></div><div><i class="avatar small purple-a">MV</i><b>Dr. Miguel</b></div></div><div class="calendar-grid" id="calendarGrid"></div></div></section>
+    <section id="clients" class="view"><div class="section-toolbar"><div><h2>Clientes</h2><p>Gestiona historiales y datos de contacto.</p></div><button class="new-btn" id="addClient">＋ Nuevo cliente</button></div><div class="card table-card"><div class="table-tools"><label>⌕ <input id="clientSearch" placeholder="Buscar cliente..." /></label><button class="filter-btn">☷ Filtros</button></div><table><thead><tr><th>CLIENTE</th><th>CONTACTO</th><th>ÚLTIMA VISITA</th><th>PRÓXIMA CITA</th><th>ESTADO</th><th></th></tr></thead><tbody id="clientTable"></tbody></table></div></section>
+    <section id="services" class="view"><div class="section-toolbar"><div><h2>Servicios</h2><p>Catálogo de tratamientos, consultas y sesiones.</p></div><button class="new-btn" id="addService">＋ Nuevo servicio</button></div><div class="service-grid" id="serviceGrid"></div></section>
+    <section id="team" class="view"><div class="section-toolbar"><div><h2>Equipo</h2><p>Profesionales y disponibilidad.</p></div><button class="new-btn">＋ Invitar miembro</button></div><div class="team-grid" id="teamGrid"></div></section>
+    <section id="reports" class="view"><div class="section-toolbar"><div><h2>Reportes</h2><p>Visión general del desempeño de tu negocio.</p></div><button class="filter-btn">⇩ Exportar informe</button></div><div class="report-grid"><article class="card report-highlight"><p>INGRESOS EN SEPTIEMBRE</p><h2>₡512,800</h2><span>↑ 18.4% frente al mes anterior</span><div class="line-chart">╱╲__╱╲____╱╲</div></article><article class="card report-list"><h2>Servicios más solicitados</h2><p><b>Limpieza dental</b><span>42 citas</span></p><p><b>Consulta general</b><span>36 citas</span></p><p><b>Blanqueamiento</b><span>21 citas</span></p><p><b>Ortodoncia</b><span>18 citas</span></p></article></div></section>
+    <section id="settings" class="view"><div class="section-toolbar"><div><h2>Configuración</h2><p>Personaliza cómo funciona tu centro.</p></div></div><div class="card settings"><h3>Información del negocio</h3><label>Nombre del negocio<input value="Centro Lumina" /></label><label>Teléfono<input value="+506 2222 4455" /></label><label>Dirección<input value="San José, Costa Rica" /></label><button class="new-btn" id="saveSettings">Guardar cambios</button></div></section>
+  </main>
+  <div class="modal-backdrop" id="modal"><form class="modal" id="appointmentForm"><button type="button" class="close" id="closeModal">×</button><p class="eyebrow">NUEVA RESERVA</p><h2>Agendar una cita</h2><label>Cliente<select id="formClient"></select></label><label>Servicio<select id="formService"></select></label><div class="form-row"><label>Hora<select id="formTime"><option>09:00</option><option>10:00</option><option>11:00</option><option>13:00</option><option>14:00</option><option>15:00</option><option>16:00</option></select></label><label>Profesional<select id="formProvider"><option>Dra. Laura Méndez</option><option>Daniela Castro</option><option>Dr. Miguel Vargas</option></select></label></div><label>Notas <textarea placeholder="Información importante para la cita"></textarea></label><button class="new-btn full" type="submit">Confirmar cita</button></form></div>
+  <script src="app.js"></script>
+  <link rel="stylesheet" href="automation.css" />
+  <script src="enhancements.js"></script>
+  <link rel="stylesheet" href="client-profile.css" />
+  <script src="client-profile.js"></script>
+  <link rel="stylesheet" href="customer-experience.css" />
+  <script src="customer-experience.js"></script>
+  <link rel="stylesheet" href="manager-mobile.css" />
+  <script src="manager-mobile.js"></script>
+  <link rel="stylesheet" href="green-theme.css" />
+  <script src="branding.js"></script>
+  <script>
+    document.getElementById('addService').onclick = () => {
+      const name = prompt('Nombre del nuevo servicio:');
+      if (!name) return;
+      const duration = prompt('Duración (ej. 45 min):', '45 min') || '45 min';
+      let amount = prompt('Monto en colones, sin símbolos (ej. 35000):', '0');
+      if (amount === null) return;
+      amount = amount.replace(/[^0-9.,]/g, '').replace(',', '.');
+      const value = Number(amount);
+      if (Number.isNaN(value)) return alert('Ingresa un monto válido.');
+      state.services.push([name, duration, '₡' + value.toLocaleString('es-CR'), '✦']);
+      save(); renderServices();
+    };
+  </script>
+</body>
+</html>
