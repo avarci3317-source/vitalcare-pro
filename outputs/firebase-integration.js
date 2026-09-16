@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithRedirect, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 
@@ -12,7 +12,7 @@ const clientId = client => emailKey(client.email) || client.initials || client.n
 
 const overlay = document.createElement('div');
 overlay.id = 'authOverlay';
-overlay.innerHTML = `<section class="auth-card"><div class="auth-symbol"><img src="vitalcare-logo.svg" alt="VitalCare Pro"></div><p>VITALCARE PRO</p><h1>Tu centro, conectado.</h1><span>Ingresa a tu clínica, crea tu cuenta con Google o consulta tu perfil de cliente.</span><button id="googleLogin">Ingresar como administrador</button><button id="registerLogin" class="register-login">Crear mi cuenta con Google</button><button id="clientLogin" class="client-login">Acceder como cliente</button><small>Los clientes nuevos completarán su perfil después de iniciar con Google.</small></section>`;
+overlay.innerHTML = `<section class="auth-card"><div class="auth-symbol"><img src="vitalcare-logo.svg" alt="VitalCare Pro"></div><p>VITALCARE PRO</p><h1>Tu centro, conectado.</h1><span>Ingresa a tu clínica, crea tu cuenta con Google o consulta tu perfil de cliente.</span><button id="googleLogin">Ingresar como administrador</button><button id="registerLogin" class="register-login">Crear mi cuenta con Google</button><button id="clientLogin" class="client-login">Acceder como cliente</button><small>Los clientes nuevos completarán su perfil después de iniciar con Google.</small><p id="authFeedback" class="auth-feedback" role="status"></p></section>`;
 document.body.append(overlay);
 const userMenu = document.createElement('div');
 userMenu.className = 'user-menu'; userMenu.innerHTML = `<span class="user-avatar"></span><div><b></b><small>Administrador</small></div><button title="Cerrar sesión">↪</button>`;
@@ -77,18 +77,22 @@ async function loadClientPortal(user) {
   clientView.innerHTML = `<main class="secure-portal"><header><div class="secure-brand">✦ <b>VitalCare Pro</b></div><button id="clientSignOut">Cerrar sesión</button></header><section class="secure-hero"><p>MI PERFIL</p><h1>Hola, ${client.data().name}</h1><span>Consulta tus citas y explora los tratamientos disponibles.</span></section><section><h2>Mis próximas citas</h2><div class="secure-list">${appointments.empty ? '<p>No tienes citas activas.</p>' : appointments.docs.map(x => `<article><b>${x.data().service}</b><span>Hoy · ${x.data().time} · ${x.data().provider}</span><i>${x.data().status}</i></article>`).join('')}</div></section><section><h2>Tratamientos y precios</h2><div class="secure-services">${services.docs.map(x => `<article><b>${x.data().name}</b><span>◷ ${x.data().duration}</span><strong>${x.data().price}</strong></article>`).join('')}</div></section></main>`;
   clientView.classList.add('visible'); document.querySelector('#clientSignOut').onclick = () => closeSession();
 }
-async function googleLogin(mode) { loginMode = mode; sessionStorage.setItem('vitalcare-login-mode', mode); try { await signInWithRedirect(auth, provider); } catch (error) { console.error(error); alert('No fue posible iniciar sesión. Verifica el dominio autorizado y vuelve a intentar.'); } }
+const authFeedback = document.querySelector('#authFeedback');
+function showAuthError(error) { console.error(error); const code = error?.code || ''; const message = code === 'auth/unauthorized-domain' ? 'Firebase no reconoce este dominio. Revisa los dominios autorizados.' : code === 'permission-denied' || /permission/i.test(error?.message || '') ? 'Google inició correctamente, pero Firebase rechazó el acceso a los datos. Revisa las reglas de Firestore.' : 'No fue posible completar el acceso: ' + (code || 'intenta de nuevo.'); authFeedback.textContent = message; authFeedback.classList.add('visible'); }
+async function googleLogin(mode) { loginMode = mode; authFeedback.textContent = 'Abriendo Google…'; authFeedback.classList.add('visible'); sessionStorage.setItem('vitalcare-login-mode', mode); try { await signInWithRedirect(auth, provider); } catch (error) { showAuthError(error); } }
 async function closeSession() { sessionStorage.removeItem('vitalcare-login-mode'); document.body.classList.remove('client-mode', 'admin-mode'); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; overlay.classList.remove('hidden'); await signOut(auth); }
 window.vitalCareSignOut = closeSession;
 document.querySelector('#googleLogin').onclick = () => googleLogin('admin'); document.querySelector('#registerLogin').onclick = () => googleLogin('register'); document.querySelector('#clientLogin').onclick = () => googleLogin('client'); userMenu.querySelector('button').onclick = closeSession;
+getRedirectResult(auth).catch(showAuthError);
 onAuthStateChanged(auth, async user => {
   if (!user) { window.vitalCareSync = null; document.body.classList.remove('client-mode', 'admin-mode'); overlay.classList.remove('hidden'); userMenu.remove(); clientView.classList.remove('visible'); document.querySelector('main').style.display = ''; document.querySelector('.sidebar').style.display = ''; return; }
   try {
+    authFeedback.textContent = '';
     const profile = await getDoc(doc(db, 'users', user.uid));
     const isNewAccount = !profile.exists();
     if (loginMode === 'client') { await loadClientPortal(user); overlay.classList.add('hidden'); return; }
     document.body.classList.remove('client-mode'); await hydrateAdmin(profile.exists() ? profile.data() : await ensureAdminProfile(user)); document.body.classList.add('admin-mode'); overlay.classList.add('hidden'); userMenu.querySelector('.user-avatar').textContent = (user.displayName || 'U').split(' ').slice(0, 2).map(x => x[0]).join(''); userMenu.querySelector('b').textContent = user.displayName || user.email; document.querySelector('.header-actions')?.prepend(userMenu);
     if (loginMode === 'register' && isNewAccount) alert('¡Cuenta creada! Ya puedes configurar tu clínica, servicios y clientes.');
     loginMode = 'admin'; sessionStorage.setItem('vitalcare-login-mode', 'admin');
-  } catch (error) { console.error(error); overlay.classList.remove('hidden'); alert(error.message === 'CLIENT_NOT_REGISTERED' ? 'Este correo no tiene un perfil asignado. Solicita a la clínica que registre tu correo.' : 'No fue posible cargar tu acceso. Vuelve a intentarlo en un minuto.'); }
+  } catch (error) { overlay.classList.remove('hidden'); showAuthError(error.message === 'CLIENT_NOT_REGISTERED' ? { code: 'CLIENT_NOT_REGISTERED' } : error); }
 });

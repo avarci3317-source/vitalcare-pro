@@ -4,6 +4,7 @@
 .auth-card{position:relative}
 .auth-dismiss{position:absolute!important;top:13px;right:13px;width:33px!important;height:33px!important;margin:0!important;padding:0!important;border:0!important;background:#edf7f2!important;color:#087b5c!important;font-size:23px!important;line-height:1!important;box-shadow:none!important}
 .auth-dismiss:before{display:none!important}
+.auth-feedback{display:none;margin:12px 0 0!important;color:#b45309!important;background:#fff7e6;border-radius:8px;padding:9px;font-size:11px!important;line-height:1.35}.auth-feedback.visible{display:block}
 #secureClientView.visible{display:block;position:relative;z-index:101}
 body.client-mode>#secureClientView{display:block;position:relative;z-index:101}
 body:not(.admin-mode):not(.client-mode)>main,body:not(.admin-mode):not(.client-mode)>.sidebar,body:not(.admin-mode):not(.client-mode)>.mobile-nav,body:not(.admin-mode):not(.client-mode)>.mobile-drawer{display:none!important}
