@@ -6,7 +6,7 @@
   document.body.append(mobileNav);
   const drawer = document.createElement('aside');
   drawer.className = 'mobile-drawer';
-  drawer.innerHTML = `<div class="mobile-drawer-panel"><div class="mobile-drawer-top"><div class="mobile-drawer-brand"><img src="vitalcare-logo.svg" alt="VitalCare Pro">VitalCare Pro</div><button class="mobile-drawer-close" aria-label="Cerrar menú">×</button></div><nav><button class="nav active" data-drawer-view="dashboard"><span>▦</span>Resumen</button><button class="nav" data-drawer-view="calendar"><span>□</span>Agenda</button><button class="nav" data-drawer-view="clients"><span>♙</span>Clientes</button><button class="nav" data-drawer-view="services"><span>◇</span>Servicios</button><button class="nav" data-drawer-view="team"><span>♧</span>Equipo</button><button class="nav" data-drawer-view="reports"><span>◔</span>Reportes</button><button class="nav" data-drawer-view="automations"><span>ϟ</span>Automatizaciones</button><button class="nav" data-drawer-view="settings"><span>⚙</span>Configuración</button></nav><div class="mobile-drawer-note">Todo tu centro, siempre a mano.</div></div>`;
+  drawer.innerHTML = `<div class="mobile-drawer-panel"><div class="mobile-drawer-top"><div class="mobile-drawer-brand"><img src="vitalcare-logo.svg" alt="VitalCare Pro">VitalCare Pro</div><button class="mobile-drawer-close" aria-label="Cerrar menú">×</button></div><nav><button class="nav active" data-drawer-view="dashboard"><span>▦</span>Resumen</button><button class="nav" data-drawer-view="calendar"><span>□</span>Agenda</button><button class="nav" data-drawer-view="clients"><span>♙</span>Clientes</button><button class="nav" data-drawer-view="services"><span>◇</span>Servicios</button><button class="nav" data-drawer-view="team"><span>♧</span>Equipo</button><button class="nav" data-drawer-view="reports"><span>◔</span>Reportes</button><button class="nav" data-drawer-view="automations"><span>ϟ</span>Automatizaciones</button><button class="nav" data-drawer-view="settings"><span>⚙</span>Configuración</button></nav><button class="mobile-sign-out" type="button">↪ Cerrar sesión / salir</button><div class="mobile-drawer-note">Todo tu centro, siempre a mano.</div></div>`;
   document.body.append(drawer);
   function closeDrawer() { drawer.classList.remove('open'); document.body.classList.remove('mobile-menu-open'); }
   function mobileShow(id) {
@@ -21,6 +21,7 @@
   mobileNav.querySelector('.quick-add').onclick = () => $('#addAppointment').click();
   drawer.querySelectorAll('[data-drawer-view]').forEach(button => button.onclick = () => mobileShow(button.dataset.drawerView));
   drawer.querySelector('.mobile-drawer-close').onclick = closeDrawer;
+  drawer.querySelector('.mobile-sign-out').onclick = () => window.vitalCareSignOut?.();
   drawer.onclick = event => { if (event.target === drawer) closeDrawer(); };
   const header = document.querySelector('header');
   const status = document.createElement('div');
