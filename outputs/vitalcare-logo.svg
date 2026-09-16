@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="VitalCare Pro">
+  <defs><linearGradient id="v" x1="12" y1="8" x2="84" y2="88" gradientUnits="userSpaceOnUse"><stop stop-color="#26b98e"/><stop offset="1" stop-color="#087b5c"/></linearGradient></defs>
+  <rect width="96" height="96" rx="28" fill="url(#v)"/>
+  <path d="M48 75C30 64 20 53 20 39c0-10 7-17 16-17 6 0 10 3 12 8 2-5 6-8 12-8 9 0 16 7 16 17 0 14-10 25-28 36Z" fill="#fff" opacity=".98"/>
+  <path d="M44 31h8v13h13v8H52v13h-8V52H31v-8h13Z" fill="#087b5c"/>
+</svg>

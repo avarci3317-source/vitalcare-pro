@@ -12,7 +12,7 @@
 </head>
 <body>
   <aside class="sidebar">
-    <div class="brand"><span class="brand-mark">✦</span><span>cliniq</span></div>
+    <div class="brand"><img class="brand-logo" src="vitalcare-logo.svg" alt="VitalCare Pro" /><span>VitalCare Pro</span></div>
     <div class="workspace"><span class="avatar">CL</span><div><b>Centro Lumina</b><small>Administración</small></div><span class="chev">⌄</span></div>
     <nav>
       <button class="nav active" data-view="dashboard"><span>▦</span>Resumen</button>
@@ -61,6 +61,7 @@
   <link rel="stylesheet" href="firebase-auth.css" />
   <script>window.vitalCareGetState=()=>state;window.vitalCareSetState=(next)=>{state=next;localStorage.setItem('cliniq-data',JSON.stringify(state));render()};</script>
   <link rel="stylesheet" href="client-access.css" />
+  <link rel="stylesheet" href="vitalcare-ui.css" />
   <script type="module" src="firebase-integration.js"></script>
   <script>
     document.getElementById('addService').onclick = () => {
